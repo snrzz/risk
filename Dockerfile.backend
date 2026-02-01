@@ -10,13 +10,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件
-COPY backend/requirements.txt .
+COPY requirements.txt .
 
 # 安装Python依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 复制应用代码
-COPY backend/ .
+# 复制应用代码（排除测试文件）
+COPY --exclude='*test*' --exclude='*.test.*' --exclude='__pycache__/' .
+
+# 复制迁移文件（如果存在）
+COPY --exclude='__pycache__/' accounts/ ./accounts/
+COPY --exclude='__pycache__/' risk/ ./risk/
+COPY --exclude='__pycache__/' tasks/ ./tasks/
+COPY --exclude='__pycache__/' risk_project/ ./risk_project/
+COPY --exclude='__pycache__/' manage.py .
 
 # 创建日志目录
 RUN mkdir -p /app/logs

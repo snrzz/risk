@@ -32,8 +32,8 @@ services:
   # Django 后端
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.backend
     container_name: risk-backend
     restart: always
     command: >
@@ -62,8 +62,8 @@ services:
   # Celery Worker
   celery-worker:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.backend
     container_name: risk-celery-worker
     restart: always
     command: celery -A risk_project worker -l info
@@ -86,8 +86,8 @@ services:
   # Celery Beat (定时任务调度器)
   celery-beat:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.backend
     container_name: risk-celery-beat
     restart: always
     command: celery -A risk_project beat -l info
@@ -105,7 +105,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.frontend
     container_name: risk-frontend
     restart: always
     ports:
