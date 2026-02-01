@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 
 
 class Portfolio(models.Model):
@@ -214,7 +215,7 @@ class Trade(models.Model):
     security_name = models.CharField(_('证券名称'), max_length=200)
     
     # 交易信息
-    trade_date = models.DateField(_('交易日期')
+    trade_date = models.DateField(_('交易日期'))
     trade_time = models.TimeField(_('交易时间'), blank=True, null=True)
     quantity = models.DecimalField(_('数量'), max_digits=18, decimal_places=2)
     price = models.DecimalField(_('成交价格'), max_digits=10, decimal_places=4)
@@ -366,7 +367,7 @@ class RiskAlert(models.Model):
     
     # 预警信息
     title = models.CharField(_('预警标题'), max_length=200)
-    content = models.TextField(_('预警内容')
+    content = models.TextField(_('预警内容'))
     indicator_name = models.CharField(_('指标名称'), max_length=100, blank=True, null=True)
     indicator_value = models.DecimalField(
         _('指标值'),
@@ -401,7 +402,7 @@ class RiskAlert(models.Model):
     handled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        verbose_name _('处理人'),
+        verbose_name=_('处理人'),
         blank=True,
         null=True
     )
