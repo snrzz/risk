@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  db:
+    image: postgres:15-alpine
+    container_name: risk-db
+    restart: always
+    environment:
+      POSTGRES_DB: risk_db
+      POSTGRES_USER: risk_user
+      POSTGRES_PASSWORD: risk_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - risk-network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: risk-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - risk-network
+
+  # Django 后端
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: risk-backend
+    restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=risk_db
+      - DB_USER=risk_user
+      - DB_PASSWORD=risk_password
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_URL=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+      - backend_logs:/app/logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - risk-network
+
+  # Celery Worker
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: risk-celery-worker
+    restart: always
+    command: celery -A risk_project worker -l info
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=risk_db
+      - DB_USER=risk_user
+      - DB_PASSWORD=risk_password
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_URL=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+      - redis
+    networks:
+      - risk-network
+
+  # Celery Beat (定时任务调度器)
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: risk-celery-beat
+    restart: always
+    command: celery -A risk_project beat -l info
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_URL=redis://redis:6379/2
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - redis
+    networks:
+      - risk-network
+
+  # React 前端
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: risk-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - risk-network
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: risk-nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - risk-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  backend_logs:
+
+networks:
+  risk-network:
+    driver: bridge
