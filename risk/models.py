@@ -4,11 +4,33 @@ from django.utils.translation import gettext_lazy as _
 
 
 class Portfolio(models.Model):
-    """投资组合"""
+    """
+    投资组合模型
     
-    code = models.CharField(_('组合代码'), max_length=20, unique=True)
-    name = models.CharField(_('组合名称'), max_length=200)
-    manager = models.CharField(_('投资经理'), max_length=100, blank=True, null=True)
+    用于管理保险资产管理公司的投资组合基本信息。
+    每个组合代表一个独立的投资账户，有独立的资产规模、投资经理和风险指标。
+    
+    字段说明:
+        code: 组合代码，唯一标识符，格式如 'P001'
+        name: 组合名称，用于展示
+        manager: 投资经理姓名
+        portfolio_type: 组合类型，区分股票、债券、混合等
+        status: 组合状态，active=运行中，suspended=暂停，closed=已关闭
+        asset_scale: 资产规模，单位元
+    
+    关联关系:
+        一对多: 与RiskIndicator（风险指标）关联
+        一对多: 与Trade（交易记录）关联
+        一对多: 与Holding（持仓信息）关联
+        一对多: 与RiskAlert（风险预警）关联
+    """
+    
+    code = models.CharField(_('组合代码'), max_length=20, unique=True, 
+                           help_text='组合唯一代码，格式如 P001')
+    name = models.CharField(_('组合名称'), max_length=200,
+                           help_text='组合展示名称')
+    manager = models.CharField(_('投资经理'), max_length=100, blank=True, null=True,
+                              help_text='负责该组合的投资经理姓名')
     
     # 组合类型
     PORTFOLIO_TYPES = (
@@ -58,13 +80,49 @@ class Portfolio(models.Model):
         verbose_name = _('投资组合')
         verbose_name_plural = _('投资组合')
         ordering = ['-created_at']
+        # 数据库索引优化
+        indexes = [
+            models.Index(fields=['code'], name='idx_portfolio_code'),
+            models.Index(fields=['status'], name='idx_portfolio_status'),
+            models.Index(fields=['portfolio_type'], name='idx_portfolio_type'),
+        ]
     
     def __str__(self):
         return f"{self.code} - {self.name}"
 
 
 class RiskIndicator(models.Model):
-    """风险指标"""
+    """
+    风险指标模型
+    
+    记录投资组合的每日风险指标数据，用于风险监控和分析。
+    
+    收益率指标:
+        daily_return: 日收益率
+        cumulative_return: 累计收益率
+        annualized_return: 年化收益率
+    
+    风险指标:
+        daily_volatility: 日波动率
+        annualized_volatility: 年化波动率
+        max_drawdown: 最大回撤（负数表示亏损幅度）
+        value_at_risk: VaR(95%)，95%置信度下的最大损失
+    
+    风险调整收益:
+        sharpe_ratio: 夏普比率，越高越好
+        sortino_ratio: 索提诺比率
+        information_ratio: 信息比率
+    
+    集中度指标:
+        industry_concentration: 行业集中度
+        stock_concentration: 个股集中度
+        top10_holdings_ratio: 前十大持仓占比
+    
+    使用建议:
+        - 夏普比率 > 1.0 表示较好的风险调整收益
+        - 最大回撤 < -10% 需要关注
+        - 行业集中度 > 30% 视为高度集中
+    """
     
     portfolio = models.ForeignKey(
         Portfolio,
@@ -172,6 +230,12 @@ class RiskIndicator(models.Model):
         verbose_name_plural = _('风险指标')
         unique_together = ['portfolio', 'indicator_date']
         ordering = ['-indicator_date', '-created_at']
+        indexes = [
+            models.Index(fields=['portfolio', 'indicator_date'], name='idx_indicator_portfolio_date'),
+            models.Index(fields=['indicator_date'], name='idx_indicator_date'),
+            models.Index(fields=['max_drawdown'], name='idx_indicator_max_dd'),
+            models.Index(fields=['sharpe_ratio'], name='idx_indicator_sharpe'),
+        ]
     
     def __str__(self):
         return f"{self.portfolio.name} - {self.indicator_date}"
@@ -256,6 +320,13 @@ class Trade(models.Model):
         verbose_name = _('交易记录')
         verbose_name_plural = _('交易记录')
         ordering = ['-trade_date', '-created_at']
+        indexes = [
+            models.Index(fields=['portfolio', 'trade_date'], name='idx_trade_portfolio_date'),
+            models.Index(fields=['trade_date'], name='idx_trade_date'),
+            models.Index(fields=['security_code'], name='idx_trade_security'),
+            models.Index(fields=['is_abnormal'], name='idx_trade_abnormal'),
+            models.Index(fields=['status'], name='idx_trade_status'),
+        ]
     
     def __str__(self):
         return f"{self.portfolio.code} - {self.security_code} - {self.trade_type}"
