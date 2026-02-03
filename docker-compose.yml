@@ -104,7 +104,7 @@ services:
   # React 前端
   frontend:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile.frontend
     container_name: risk-frontend
     restart: always
