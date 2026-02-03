@@ -113,7 +113,7 @@ services:
     container_name: risk-frontend
     restart: always
     ports:
-      - "3000:3000"
+      - "13001:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -126,7 +126,7 @@ services:
     container_name: risk-nginx
     restart: always
     ports:
-      - "80:80"
+      - "20080:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
