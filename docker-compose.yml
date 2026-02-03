@@ -52,7 +52,7 @@ services:
       - ./backend:/app
       - backend_logs:/app/logs
     ports:
-      - "8000:8000"
+      - "18001:8000"
     depends_on:
       - db
       - redis
@@ -77,6 +77,8 @@ services:
       - CELERY_RESULT_URL=redis://redis:6379/2
     volumes:
       - ./backend:/app
+    ports:
+      - "18000:18000"
     depends_on:
       - db
       - redis
@@ -96,6 +98,8 @@ services:
       - CELERY_RESULT_URL=redis://redis:6379/2
     volumes:
       - ./backend:/app
+    ports:
+      - "18000:18000"
     depends_on:
       - redis
     networks:
