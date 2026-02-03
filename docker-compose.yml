@@ -50,7 +50,7 @@ services:
       - .:/app
       - backend_logs:/app/logs
     ports:
-      - "18001:8000"
+      - "18000:8000"
     depends_on:
       - db
       - redis
